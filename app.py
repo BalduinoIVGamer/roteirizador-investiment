@@ -1,121 +1,107 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
-# Mostrar banner do produto
-st.image("banner.png", use_column_width=True)
+# ================================
+# FUNÇÃO PARA LER USUÁRIOS
+# ================================
+def carregar_usuarios():
+    try:
+        usuarios_df = pd.read_csv("usuarios.csv")
+        return dict(zip(usuarios_df.usuario, usuarios_df.senha))
+    except:
+        return {}
 
-# =========================================================
-# 🔹 Configurações da página
-# =========================================================
-st.set_page_config(
-    page_title="Roteirizador de Investimentos",
-    page_icon="💹",
-    layout="centered",
-)
+usuarios = carregar_usuarios()
 
-# =========================================================
-# 🔹 Estilo customizado (CSS aplicado no Streamlit)
-# =========================================================
-st.markdown("""
-    <style>
-        .main {
-            background-color: #f9fafb;
-        }
-        .stButton>button {
-            background-color: #4CAF50;
-            color: white;
-            border-radius: 10px;
-            height: 3em;
-            width: 100%;
-            font-size: 16px;
-            font-weight: bold;
-        }
-        .stButton>button:hover {
-            background-color: #45a049;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# ================================
+# LOGIN
+# ================================
+st.sidebar.title("🔑 Acesso Restrito")
+usuario = st.sidebar.text_input("E-mail")
+senha = st.sidebar.text_input("Senha", type="password")
 
-# =========================================================
-# 🔹 Logo + Cabeçalho
-# =========================================================
-st.image("https://i.ibb.co/zGbYrM2/logo.png", width=200)  # substitua pelo seu logo
-st.title("💹 Roteirizador de Investimentos")
-st.markdown("### Sua rota inteligente para multiplicar patrimônio 🚀")
+if usuario in usuarios and usuarios[usuario] == senha:
+    st.sidebar.success("✅ Login realizado com sucesso!")
 
-# =========================================================
-# 🔹 Abas de Navegação
-# =========================================================
-aba1, aba2 = st.tabs(["📊 Simulação única", "📈 Comparação de cenários"])
+    # ================================
+    # Banner
+    # ================================
+    st.image("banner.png", use_container_width=True)
 
-# ---------------------------------------------------------
-# 📊 Simulação única
-# ---------------------------------------------------------
-with aba1:
-    st.subheader("Simulação de um investimento")
+    # ================================
+    # Título e descrição
+    # ================================
+    st.title("📈 Roteirizador de Investimentos")
+    st.write("Simule sua rota financeira e descubra como multiplicar seu patrimônio.")
 
-    valor_inicial = st.number_input("Valor inicial (R$)", min_value=1000, value=5000, step=500)
-    aporte_mensal = st.number_input("Aporte mensal (R$)", min_value=0, value=500, step=100)
-    taxa = st.number_input("Rentabilidade anual (%)", min_value=1.0, value=8.0, step=0.5)
-    anos = st.slider("Período (anos)", 1, 30, 10)
+    # ================================
+    # Entrada de dados
+    # ================================
+    st.sidebar.header("Parâmetros da Simulação")
 
-    # Cálculo da evolução
-    valores = [valor_inicial]
-    for i in range(anos):
-        valor_futuro = valores[-1] * (1 + taxa/100) + (aporte_mensal * 12)
-        valores.append(valor_futuro)
+    aporte_inicial = st.sidebar.number_input("💰 Aporte inicial (R$)", min_value=0, value=1000, step=100)
+    aporte_mensal = st.sidebar.number_input("📥 Aporte mensal (R$)", min_value=0, value=500, step=50)
+    taxa_juros = st.sidebar.slider("📊 Taxa de juros ao ano (%)", 0.0, 30.0, 10.0, step=0.5)
+    tempo_anos = st.sidebar.slider("⏳ Tempo de investimento (anos)", 1, 50, 10)
 
-    plt.style.use("seaborn-v0_8")
-    plt.figure(figsize=(7,4))
-    plt.plot(range(anos+1), valores, marker="o", label="Simulação")
-    plt.title("Evolução do Investimento")
-    plt.xlabel("Ano")
-    plt.ylabel("Valor acumulado (R$)")
-    plt.legend()
-    st.pyplot(plt)
+    # ================================
+    # Simulação
+    # ================================
+    meses = tempo_anos * 12
+    taxa_mensal = (1 + taxa_juros / 100) ** (1 / 12) - 1
 
-# ---------------------------------------------------------
-# 📈 Comparação de cenários
-# ---------------------------------------------------------
-with aba2:
-    st.subheader("Comparação entre diferentes estratégias")
+    valores = []
+    montante = aporte_inicial
+    for mes in range(meses):
+        montante = montante * (1 + taxa_mensal) + aporte_mensal
+        valores.append(montante)
 
-    valor_inicial = 5000
-    anos = 10
+    # ================================
+    # Gráfico principal
+    # ================================
+    st.subheader("📊 Crescimento do Investimento")
+    fig, ax = plt.subplots()
+    ax.plot(range(meses), valores, label="Valor acumulado", color="green")
+    ax.set_xlabel("Meses")
+    ax.set_ylabel("R$ acumulado")
+    ax.legend()
+    st.pyplot(fig)
 
-    # Três cenários com taxas diferentes
-    taxas = {
-        "Tesouro Selic (6% a.a.)": 6,
-        "Renda Fixa (8% a.a.)": 8,
-        "Bolsa (12% a.a.)": 12
-    }
+    # ================================
+    # Comparação com cenários
+    # ================================
+    st.subheader("📈 Comparação de Cenários")
+    taxas_comparacao = [5, 10, 15]
+    fig2, ax2 = plt.subplots()
 
-    resultados = {}
-    for nome, taxa in taxas.items():
-        valores = [valor_inicial]
-        for i in range(anos):
-            valores.append(valores[-1] * (1 + taxa/100))
-        resultados[nome] = valores
+    for taxa in taxas_comparacao:
+        taxa_mensal_comp = (1 + taxa / 100) ** (1 / 12) - 1
+        montante_comp = aporte_inicial
+        valores_comp = []
+        for mes in range(meses):
+            montante_comp = montante_comp * (1 + taxa_mensal_comp) + aporte_mensal
+            valores_comp.append(montante_comp)
+        ax2.plot(range(meses), valores_comp, label=f"Taxa {taxa}% a.a.")
 
-    plt.style.use("seaborn-v0_8")
-    plt.figure(figsize=(7,4))
-    for nome, valores in resultados.items():
-        plt.plot(range(anos+1), valores, marker="o", label=nome)
-    plt.title("Comparação de Investimentos")
-    plt.xlabel("Ano")
-    plt.ylabel("Valor acumulado (R$)")
-    plt.legend()
-    st.pyplot(plt)
+    ax2.set_xlabel("Meses")
+    ax2.set_ylabel("R$ acumulado")
+    ax2.legend()
+    st.pyplot(fig2)
 
-# =========================================================
-# 🔹 Rodapé
-# =========================================================
-st.markdown("""
----
-💡 Desenvolvido com Streamlit  
-📧 Contato: **seuemail@exemplo.com**  
-📱 Instagram: [@seu_perfil](https://instagram.com/seu_perfil)  
-💼 LinkedIn: [Seu Nome](https://linkedin.com/in/seu_nome)
-""")
+    # ================================
+    # Resultado final
+    # ================================
+    st.subheader("📌 Resultado Final")
+    st.success(f"Após {tempo_anos} anos, você terá acumulado **R$ {montante:,.2f}** 🚀")
 
+    # ================================
+    # Rodapé
+    # ================================
+    st.markdown("---")
+    st.caption("🧩 Roteirizador de Investimentos | Acesso exclusivo para clientes Hotmart.")
+
+else:
+    st.warning("🔒 Acesso restrito. Faça login com seu e-mail e senha cadastrados.")
 
