@@ -1,3 +1,7 @@
-﻿streamlit
+nginx
+
+streamlit
 matplotlib
 reportlab
+
+
