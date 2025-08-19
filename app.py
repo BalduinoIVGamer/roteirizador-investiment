@@ -1,6 +1,9 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 
+# Mostrar banner do produto
+st.image("banner.png", use_column_width=True)
+
 # =========================================================
 # 🔹 Configurações da página
 # =========================================================
@@ -114,4 +117,5 @@ st.markdown("""
 📱 Instagram: [@seu_perfil](https://instagram.com/seu_perfil)  
 💼 LinkedIn: [Seu Nome](https://linkedin.com/in/seu_nome)
 """)
+
 
