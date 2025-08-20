@@ -1,209 +1,206 @@
 import streamlit as st
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-import datetime
 
-# ================================
-# FUNÇÃO PARA LER USUÁRIOS
-# ================================
-def carregar_usuarios():
-    try:
-        usuarios_df = pd.read_csv("usuarios.csv")
-        return dict(zip(usuarios_df.usuario, usuarios_df.senha))
-    except:
-        return {}
-
-usuarios = carregar_usuarios()
-
-# ================================
+# ========================
 # LOGIN
-# ================================
-st.sidebar.title("🔑 Acesso Restrito")
-usuario = st.sidebar.text_input("E-mail")
+# ========================
+def autenticar(usuario, senha):
+    try:
+        df = pd.read_csv("usuarios.csv")
+        if ((df["usuario"] == usuario) & (df["senha"] == senha)).any():
+            return True
+        else:
+            return False
+    except:
+        return False
+
+st.image("banner.png", use_container_width=True)
+st.sidebar.title("🔑 Login")
+usuario = st.sidebar.text_input("Usuário (e-mail)")
 senha = st.sidebar.text_input("Senha", type="password")
+login = st.sidebar.button("Entrar")
 
-if usuario in usuarios and usuarios[usuario] == senha:
-    st.sidebar.success("✅ Login realizado com sucesso!")
+if not (usuario and senha and login and autenticar(usuario, senha)):
+    st.warning("Por favor, faça login para acessar o app.")
+    st.stop()
 
-    # ================================
-    # Banner
-    # ================================
-    st.image("banner.png", use_container_width=True)
+# ========================
+# FUNÇÕES DO APP
+# ========================
 
-    # ================================
-    # Menu principal
-    # ================================
-    menu = st.sidebar.radio("📌 Escolha uma seção:", [
+# --- Simulação de Investimentos ---
+def simulacao_investimentos():
+    st.header("📈 Simulação de Investimentos")
+
+    valor_inicial = st.number_input("💰 Valor inicial investido (R$)", min_value=0.0, value=1000.0, step=100.0)
+    aporte_mensal = st.number_input("📥 Aporte mensal (R$)", min_value=0.0, value=200.0, step=50.0)
+    taxa = st.number_input("📊 Taxa de juros anual (%)", min_value=0.0, value=10.0, step=0.5) / 100
+    anos = st.slider("⏳ Prazo (anos)", 1, 50, 20)
+
+    meses = anos * 12
+    taxa_mensal = (1 + taxa) ** (1/12) - 1
+
+    valores = []
+    montante = valor_inicial
+    for m in range(meses):
+        montante = montante * (1 + taxa_mensal) + aporte_mensal
+        valores.append(montante)
+
+    st.subheader("💵 Evolução do investimento")
+    fig, ax = plt.subplots()
+    ax.plot(range(meses), valores)
+    ax.set_xlabel("Meses")
+    ax.set_ylabel("Valor acumulado (R$)")
+    st.pyplot(fig)
+
+    st.success(f"✨ Em {anos} anos você terá aproximadamente **R$ {montante:,.2f}**")
+
+# --- Comparação de Estratégias ---
+def comparacao_estrategias():
+    st.header("⚖️ Comparação de Estratégias de Investimento")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        taxa1 = st.number_input("📊 Taxa anual da Estratégia 1 (%)", value=8.0) / 100
+    with col2:
+        taxa2 = st.number_input("📊 Taxa anual da Estratégia 2 (%)", value=12.0) / 100
+
+    anos = st.slider("⏳ Prazo (anos)", 1, 50, 20)
+
+    meses = anos * 12
+    valor_inicial = 1000
+    aporte = 200
+
+    def simular(taxa):
+        taxa_mensal = (1 + taxa) ** (1/12) - 1
+        montante = valor_inicial
+        valores = []
+        for _ in range(meses):
+            montante = montante * (1 + taxa_mensal) + aporte
+            valores.append(montante)
+        return valores
+
+    v1 = simular(taxa1)
+    v2 = simular(taxa2)
+
+    fig, ax = plt.subplots()
+    ax.plot(range(meses), v1, label="Estratégia 1")
+    ax.plot(range(meses), v2, label="Estratégia 2")
+    ax.legend()
+    ax.set_xlabel("Meses")
+    ax.set_ylabel("Valor acumulado (R$)")
+    st.pyplot(fig)
+
+# --- Relatório PDF ---
+def relatorio_pdf():
+    st.header("🧾 Gerar Relatório em PDF")
+    st.info("⚠️ Aqui você pode exportar um relatório. (Implementação completa pode ser adicionada depois)")
+
+# --- Carteira Simulada ---
+def carteira_simulada():
+    st.header("💼 Carteira Simulada")
+
+    renda_fixa = st.slider("📊 % em Renda Fixa", 0, 100, 50)
+    acoes = st.slider("📊 % em Ações", 0, 100 - renda_fixa, 30)
+    fundos = 100 - renda_fixa - acoes
+
+    st.write(f"📌 Sua carteira: {renda_fixa}% Renda Fixa, {acoes}% Ações, {fundos}% Fundos")
+
+# --- Ranking de Investimentos ---
+def ranking_investimentos():
+    st.header("⭐ Ranking de Investimentos")
+
+    dados = {
+        "Investimento": ["Tesouro Selic", "CDB", "Ações", "Fundos Imobiliários"],
+        "Rentabilidade (%)": [9, 11, 18, 12]
+    }
+    df = pd.DataFrame(dados).sort_values("Rentabilidade (%)", ascending=False)
+    st.table(df)
+
+# --- Indicador de Risco ---
+def indicador_risco():
+    st.header("⚖️ Indicador de Risco")
+
+    perfil = st.radio("Qual seu perfil de investidor?", ["Conservador", "Moderado", "Agressivo"])
+
+    if perfil == "Conservador":
+        st.info("👉 Recomendado: 80% Renda Fixa, 15% Fundos, 5% Ações")
+    elif perfil == "Moderado":
+        st.info("👉 Recomendado: 50% Renda Fixa, 30% Fundos, 20% Ações")
+    else:
+        st.info("👉 Recomendado: 20% Renda Fixa, 30% Fundos, 50% Ações")
+
+# --- Controle de Gastos (Excel) ---
+def controle_gastos():
+    st.header("📊 Controle de Gastos Mensais")
+
+    uploaded_file = st.file_uploader("📂 Envie sua planilha de gastos (Excel)", type=["xlsx", "xls"])
+
+    if uploaded_file:
+        df = pd.read_excel(uploaded_file)
+
+        st.subheader("📑 Dados da sua planilha")
+        st.dataframe(df)
+
+        if "Categoria" in df.columns and "Valor" in df.columns:
+            st.subheader("📊 Gráfico de Gastos por Categoria")
+            fig, ax = plt.subplots()
+            df.groupby("Categoria")["Valor"].sum().plot(kind="bar", ax=ax)
+            st.pyplot(fig)
+        else:
+            st.warning("⚠️ Sua planilha precisa ter as colunas: 'Categoria' e 'Valor'.")
+
+# --- Notícias do Mercado ---
+def noticias_mercado():
+    st.header("📰 Notícias do Mercado Financeiro")
+
+    st.subheader("📉 S&P 500 pode recuar até o fim de 2025")
+    st.write("O índice S&P 500 deve terminar o ano abaixo dos níveis recorde atuais, com otimismo contido devido a tensões tarifárias.")
+    st.markdown("[🔗 Leia mais](https://www.reuters.com/business/sp-500-seen-stalling-ai-rally-meets-tariff-jitters-reuters-poll-2025-08-19/?utm_source=chatgpt.com)")
+
+    st.subheader("🚀 Criptomoedas em alta sustentada até 2027")
+    st.write("Especialistas projetam que a fase de crescimento do mercado cripto continuará até 2027, impulsionada por capital institucional.")
+    st.markdown("[🔗 Leia mais](https://news.bitcoin.com/analysts-see-multi-year-crypto-bull-market-as-institutional-floodgates-swing-open/?utm_source=chatgpt.com)")
+
+    st.subheader("💴 China avalia stablecoins lastreadas em yuan")
+    st.write("O país discute a implementação de stablecoins lastreadas em yuan para ampliar o uso global de sua moeda.")
+    st.markdown("[🔗 Leia mais](https://www.reuters.com/business/finance/china-considering-yuan-backed-stablecoins-boost-global-currency-usage-sources-2025-08-20/?utm_source=chatgpt.com)")
+
+# ========================
+# MENU DE NAVEGAÇÃO
+# ========================
+menu = st.sidebar.radio(
+    "📌 Navegação",
+    [
         "Simulação de Investimentos",
-        "Simulação de Aposentadoria",
-        "Comparador de Estratégias",
+        "Comparação de Estratégias",
+        "Relatório em PDF",
         "Carteira Simulada",
         "Ranking de Investimentos",
         "Indicador de Risco",
-        "Relatório em PDF"
-    ])
+        "Controle de Gastos",
+        "Notícias do Mercado"
+    ]
+)
 
-    # ================================
-    # 1 - Simulação de Investimentos
-    # ================================
-    if menu == "Simulação de Investimentos":
-        st.title("📈 Roteirizador de Investimentos")
-        st.write("Simule sua rota financeira e descubra como multiplicar seu patrimônio.")
+if menu == "Simulação de Investimentos":
+    simulacao_investimentos()
+elif menu == "Comparação de Estratégias":
+    comparacao_estrategias()
+elif menu == "Relatório em PDF":
+    relatorio_pdf()
+elif menu == "Carteira Simulada":
+    carteira_simulada()
+elif menu == "Ranking de Investimentos":
+    ranking_investimentos()
+elif menu == "Indicador de Risco":
+    indicador_risco()
+elif menu == "Controle de Gastos":
+    controle_gastos()
+elif menu == "Notícias do Mercado":
+    noticias_mercado()
 
-        aporte_inicial = st.sidebar.number_input("💰 Aporte inicial (R$)", min_value=0, value=1000, step=100)
-        aporte_mensal = st.sidebar.number_input("📥 Aporte mensal (R$)", min_value=0, value=500, step=50)
-        taxa_juros = st.sidebar.slider("📊 Taxa de juros ao ano (%)", 0.0, 30.0, 10.0, step=0.5)
-        tempo_anos = st.sidebar.slider("⏳ Tempo de investimento (anos)", 1, 50, 10)
-
-        meses = tempo_anos * 12
-        taxa_mensal = (1 + taxa_juros / 100) ** (1 / 12) - 1
-
-        valores = []
-        montante = aporte_inicial
-        for mes in range(meses):
-            montante = montante * (1 + taxa_mensal) + aporte_mensal
-            valores.append(montante)
-
-        st.subheader("📊 Crescimento do Investimento")
-        fig, ax = plt.subplots()
-        ax.plot(range(meses), valores, label="Valor acumulado", color="green")
-        ax.set_xlabel("Meses")
-        ax.set_ylabel("R$ acumulado")
-        ax.legend()
-        st.pyplot(fig)
-
-        st.success(f"Após {tempo_anos} anos, você terá acumulado **R$ {montante:,.2f}** 🚀")
-
-    # ================================
-    # 2 - Simulação de Aposentadoria
-    # ================================
-    elif menu == "Simulação de Aposentadoria":
-        st.title("🏖️ Simulação de Aposentadoria")
-
-        idade_atual = st.number_input("Idade atual", 18, 100, 30)
-        idade_aposentadoria = st.number_input("Idade de aposentadoria desejada", idade_atual+1, 100, 65)
-        renda_mensal_desejada = st.number_input("Renda mensal desejada (R$)", 500, 50000, 5000, step=500)
-        taxa_juros = st.slider("Taxa de juros ao ano (%)", 0.0, 30.0, 8.0)
-
-        anos_investimento = idade_aposentadoria - idade_atual
-        montante_necessario = renda_mensal_desejada * 12 * 20  # considera 20 anos de aposentadoria
-
-        st.info(f"💡 Para se aposentar aos {idade_aposentadoria}, você precisará acumular **R$ {montante_necessario:,.2f}**.")
-
-        taxa_mensal = (1 + taxa_juros/100)**(1/12) - 1
-        meses = anos_investimento * 12
-        aporte_mensal_necessario = montante_necessario * taxa_mensal / ((1+taxa_mensal)**meses - 1)
-
-        st.success(f"➡️ Você precisará investir cerca de **R$ {aporte_mensal_necessario:,.2f} por mês**.")
-
-    # ================================
-    # 3 - Comparador de Estratégias
-    # ================================
-    elif menu == "Comparador de Estratégias":
-        st.title("⚖️ Comparador de Estratégias")
-
-        aporte_inicial = st.number_input("Aporte inicial (R$)", 0, 1000000, 1000)
-        aporte_mensal = st.number_input("Aporte mensal (R$)", 0, 100000, 500)
-        tempo_anos = st.slider("Tempo (anos)", 1, 50, 10)
-
-        taxa1 = st.slider("Taxa estratégia 1 (%)", 0.0, 30.0, 8.0)
-        taxa2 = st.slider("Taxa estratégia 2 (%)", 0.0, 30.0, 12.0)
-
-        meses = tempo_anos * 12
-        def simular(taxa):
-            taxa_mensal = (1 + taxa/100)**(1/12) - 1
-            valores, montante = [], aporte_inicial
-            for _ in range(meses):
-                montante = montante*(1+taxa_mensal)+aporte_mensal
-                valores.append(montante)
-            return valores
-
-        valores1, valores2 = simular(taxa1), simular(taxa2)
-
-        fig, ax = plt.subplots()
-        ax.plot(range(meses), valores1, label=f"Estratégia 1 ({taxa1}% a.a.)")
-        ax.plot(range(meses), valores2, label=f"Estratégia 2 ({taxa2}% a.a.)")
-        ax.legend()
-        st.pyplot(fig)
-
-    # ================================
-    # 4 - Carteira Simulada
-    # ================================
-    elif menu == "Carteira Simulada":
-        st.title("📊 Carteira de Investimentos")
-
-        st.write("Monte sua carteira com pesos e veja a evolução.")
-
-        renda_fixa = st.slider("Renda Fixa (%)", 0, 100, 50)
-        acoes = st.slider("Ações (%)", 0, 100-renda_fixa, 30)
-        fundos = 100 - renda_fixa - acoes
-
-        st.write(f"Distribuição: Renda Fixa {renda_fixa}%, Ações {acoes}%, Fundos {fundos}%")
-
-        taxas = {"Renda Fixa": 6, "Ações": 12, "Fundos": 9}
-        pesos = [renda_fixa/100, acoes/100, fundos/100]
-
-        taxa_carteira = sum([taxas[k]*p for k,p in zip(taxas.keys(), pesos)])
-        st.info(f"Taxa média estimada da carteira: {taxa_carteira:.2f}% a.a.")
-
-    # ================================
-    # 5 - Ranking de Investimentos
-    # ================================
-    elif menu == "Ranking de Investimentos":
-        st.title("🏆 Ranking de Investimentos")
-
-        dados = {
-            "Investimento": ["Tesouro Selic", "CDB", "Fundos", "Ações"],
-            "Rentabilidade (% a.a.)": [6, 8, 10, 12]
-        }
-        df = pd.DataFrame(dados)
-        df = df.sort_values(by="Rentabilidade (% a.a.)", ascending=False)
-
-        st.table(df)
-
-    # ================================
-    # 6 - Indicador de Risco
-    # ================================
-    elif menu == "Indicador de Risco":
-        st.title("⚠️ Indicador de Risco")
-
-        perfil = st.radio("Escolha seu perfil de investidor", ["Conservador", "Moderado", "Agressivo"])
-
-        if perfil == "Conservador":
-            st.success("🔹 Sugestão: 80% Renda Fixa, 15% Fundos, 5% Ações")
-        elif perfil == "Moderado":
-            st.success("🔹 Sugestão: 50% Renda Fixa, 30% Fundos, 20% Ações")
-        else:
-            st.success("🔹 Sugestão: 20% Renda Fixa, 30% Fundos, 50% Ações")
-
-    # ================================
-    # 7 - Relatório em PDF
-    # ================================
-    elif menu == "Relatório em PDF":
-        st.title("📄 Gerar Relatório em PDF")
-
-        nome = st.text_input("Digite seu nome")
-        resumo = st.text_area("Resumo da simulação")
-
-        if st.button("Gerar PDF"):
-            doc = SimpleDocTemplate("relatorio.pdf")
-            styles = getSampleStyleSheet()
-            story = []
-
-            story.append(Paragraph(f"Relatório Financeiro - {nome}", styles['Title']))
-            story.append(Spacer(1, 12))
-            story.append(Paragraph(f"Data: {datetime.date.today()}", styles['Normal']))
-            story.append(Spacer(1, 12))
-            story.append(Paragraph(resumo, styles['Normal']))
-
-            doc.build(story)
-            with open("relatorio.pdf", "rb") as file:
-                st.download_button("⬇️ Baixar Relatório", file, "relatorio.pdf")
-
-else:
-    st.warning("🔒 Acesso restrito. Faça login com seu e-mail e senha cadastrados.")
 
 
