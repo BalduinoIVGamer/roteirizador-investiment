@@ -21,7 +21,7 @@ if not st.session_state.logged_in:
         if check_login(user, pwd):
             st.session_state.logged_in = True
             st.success("Login realizado com sucesso!")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Usuário ou senha incorretos")
     st.stop()
@@ -167,5 +167,6 @@ elif opcao == "🚀 Criptomoedas 2026":
 
     df = pd.DataFrame(list(analise.items()), columns=["Criptomoeda", "Motivo"])
     st.table(df)
+
 
 
